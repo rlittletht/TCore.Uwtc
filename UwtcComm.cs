@@ -11,7 +11,7 @@ namespace TCore
 {
     public partial class UwtcComm
     {
-        public delegate void LogSzDel(string s);
+        public delegate void LogSzDel(object crid, string s);
 
         private LogSzDel m_log = null;
 
@@ -25,10 +25,10 @@ namespace TCore
             m_log = log;
         }
 
-        void LogSz(string s)
+        void LogSz(object crid, string s)
         {
             if (m_log != null)
-                m_log(s);
+                m_log(crid, s);
         }
 
         public class UwtcSerialPort
@@ -362,7 +362,7 @@ namespace TCore
         public Int64 ReadingIndex { get { return m_ser.ReadingIndex; } }
         void BackgroundRead()
         {
-            LogSz(String.Format("Background Read top ({0})", System.Threading.Thread.CurrentThread.ManagedThreadId));
+            LogSz(null, String.Format("Background Read top ({0})", System.Threading.Thread.CurrentThread.ManagedThreadId));
 
             byte[] rgb = new byte[1];
 
