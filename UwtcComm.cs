@@ -11,7 +11,7 @@ namespace TCore
 {
     public partial class UwtcComm
     {
-        public delegate void LogSzDel(object crid, string s);
+        public delegate void LogSzDel(object crid, string s, params object[] rgo);
 
         private LogSzDel m_log = null;
 
