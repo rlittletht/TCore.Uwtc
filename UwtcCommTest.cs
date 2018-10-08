@@ -536,21 +536,32 @@ namespace TCore
         {
             private SimAtom m_saDelay;
 
-            private SimReading m_srAmbient;
-            private SimReading m_srTherm1;
-            private SimReading m_srTherm2;
-            private SimReading m_srTherm3;
+            private Dictionary<string, SimReading> m_mpThermIDReading;
             private Int64 m_cSteps;
 
             public Sim(int msecMin, int msecMax, int[] rgnDistDelay)
             {
+                m_mpThermIDReading = new Dictionary<string, SimReading>();
                 m_saDelay = new SimAtom(msecMin, msecMax, rgnDistDelay);
             }
 
+            public void SetupTherm(string sID, double dMinStart, double dMaxStart, int[] rgnDistGrowth, double dMinGrow, double dMaxGrow)
+            {
+                m_mpThermIDReading.Add(sID, new SimReading(dMinStart, dMaxStart, rgnDistGrowth, dMinGrow, dMaxGrow));
+            }
+
+            public void AddThermRule(string sID, SimReading.RuleKind rk, double dVal, double dMinGrow, double dMaxGrow,
+                int[] rgnDistGrowth)
+            {
+                m_mpThermIDReading[sID].AddRule(rk, dVal, dMinGrow, dMaxGrow, rgnDistGrowth);
+            }
+
+#if HARDCODED
             public void SetupAmbient(double dMinStart, double dMaxStart, int[] rgnDistGrowth, double dMinGrow, double dMaxGrow)
             {
                 m_srAmbient = new SimReading(dMinStart, dMaxStart, rgnDistGrowth, dMinGrow, dMaxGrow);
             }
+
             public void AddAmbientRule(SimReading.RuleKind rk, double dVal, double dMinGrow, double dMaxGrow, int[] rgnDistGrowth)
             {
                 m_srAmbient.AddRule(rk, dVal, dMinGrow, dMaxGrow, rgnDistGrowth);
@@ -585,25 +596,22 @@ namespace TCore
             {
                 m_srTherm3.AddRule(rk, dVal, dMinGrow, dMaxGrow, rgnDistGrowth);
             }
-
+#endif
             public void Step()
             {
-                if (m_srAmbient != null)
-                    m_srAmbient.BumpReading();
-                if (m_srTherm1 != null)
-                    m_srTherm1.BumpReading();
-                if (m_srTherm2 != null)
-                    m_srTherm2.BumpReading();
-                if (m_srTherm3 != null)
-                    m_srTherm3.BumpReading();
+                foreach (SimReading sr in m_mpThermIDReading.Values)
+                    sr.BumpReading();
                 m_cSteps++;
             }
 
             public Int64 StepIndex { get { return m_cSteps; } }
-            public double Ambient { get { return m_srAmbient == null ? -33 : m_srAmbient.Reading; }}
-            public double Therm1 { get { return m_srTherm1 == null ? -33 : m_srTherm1.Reading; }}
-            public double Therm2 { get { return m_srTherm2 == null ? -33 : m_srTherm2.Reading; }}
-            public double Therm3 { get { return m_srTherm3 == null ? -33 : m_srTherm3.Reading; }}
+
+            public double ReadingFromThermID(string sThermID)
+            {
+                return m_mpThermIDReading[sThermID].Reading;
+            }
+
+            public double Ambient => m_mpThermIDReading["0"].Reading;
 
             public int Delay { get { return (int)m_saDelay.Generate();  } }
         }
@@ -698,11 +706,11 @@ namespace TCore
                 {
                 double d = -33.0;
                 if (m_nAddrLast == 1)
-                    d = m_sim.Therm1;
+                    d = m_sim.ReadingFromThermID("1");
                 else if (m_nAddrLast == 2)
-                    d = m_sim.Therm2;
+                    d = m_sim.ReadingFromThermID("2");
                 else if (m_nAddrLast == 3)
-                    d = m_sim.Therm3;
+                    d = m_sim.ReadingFromThermID("3");
 
                 if (d > 0.0)
                     {
@@ -751,20 +759,20 @@ namespace TCore
 //            m_sim = new Sim(23, 123, new int[] { 6, 10, 18, 16, 14, 12, 8, 6, 6, 4, 3, 3, 2, 2, 1, 1, 1, 1 } );
 
             //                                       -1         0       1       2
-            m_sim.SetupAmbient(50.0, 60.0, new int[] {1, 2, 15, 70, 17, 2, 1, 1, 1}, -1.0, 2.0);
-            m_sim.AddAmbientRule(SimReading.RuleKind.ValueGreater, 240.0, -1.0, 1.0, new int[] {1, 1, 5, 850, 1, 1, 1});
+            m_sim.SetupTherm("0", 50.0, 60.0, new int[] {1, 2, 15, 70, 17, 2, 1, 1, 1}, -1.0, 2.0);
+            m_sim.AddThermRule("0", SimReading.RuleKind.ValueGreater, 240.0, -1.0, 1.0, new int[] {1, 1, 5, 850, 1, 1, 1});
             //                                      -3 -2 -1  0  1  2  3  4   
-            m_sim.SetupTherm1(50.0, 60.0, new int[] {1, 4, 35, 58, 10, 5, 1}, -3.0, 4.0);
-            m_sim.AddTherm1Rule(SimReading.RuleKind.ValueGreater, 160.0, -1.0, 1.0, new int[] {1, 1, 5, 850, 2, 1, 1});
-            m_sim.AddTherm1Rule(SimReading.RuleKind.ValueGreater, 170.0, -1.0, 2.0, new int[] {1, 2, 36, 870, 16, 2, 1, 1, 1});
+            m_sim.SetupTherm("1", 50.0, 60.0, new int[] {1, 4, 35, 58, 10, 5, 1}, -3.0, 4.0);
+            m_sim.AddThermRule("1", SimReading.RuleKind.ValueGreater, 160.0, -1.0, 1.0, new int[] {1, 1, 5, 850, 2, 1, 1});
+            m_sim.AddThermRule("1", SimReading.RuleKind.ValueGreater, 170.0, -1.0, 2.0, new int[] {1, 2, 36, 870, 16, 2, 1, 1, 1});
             //                                       -2     0     2      4
-            m_sim.SetupTherm2(50.0, 60.0, new int[] {1, 8, 44, 13, 5, 2, 1}, -2.0, 4.0);
-            m_sim.AddTherm2Rule(SimReading.RuleKind.ValueGreater, 160.0, -1.0, 1.0, new int[] {1, 1, 5, 850, 2, 1, 1});
-            m_sim.AddTherm2Rule(SimReading.RuleKind.ValueGreater, 170.0, -3.0, 4.0, new int[] {1, 6, 465, 458, 10, 5, 1});
+            m_sim.SetupTherm("2", 50.0, 60.0, new int[] {1, 8, 44, 13, 5, 2, 1}, -2.0, 4.0);
+            m_sim.AddThermRule("2", SimReading.RuleKind.ValueGreater, 160.0, -1.0, 1.0, new int[] {1, 1, 5, 850, 2, 1, 1});
+            m_sim.AddThermRule("2", SimReading.RuleKind.ValueGreater, 170.0, -3.0, 4.0, new int[] {1, 6, 465, 458, 10, 5, 1});
             //                                      -3  -2  -1   0   1   2   3   4   5
-            m_sim.SetupTherm3(50.0, 60.0, new int[] {1, 3, 19, 73, 15, 5, 1, 1, 1, 1, 1}, -2.0, 5.0);
-            m_sim.AddTherm3Rule(SimReading.RuleKind.ValueGreater, 160.0, -1.0, 1.0, new int[] {1, 1, 5, 850, 2, 1, 1});
-            m_sim.AddTherm3Rule(SimReading.RuleKind.ValueGreater, 170.0, -2.0, 2.0, new int[] {1, 8, 44, 43, 45, 9, 1});
+            m_sim.SetupTherm("3", 50.0, 60.0, new int[] {1, 3, 19, 73, 15, 5, 1, 1, 1, 1, 1}, -2.0, 5.0);
+            m_sim.AddThermRule("3", SimReading.RuleKind.ValueGreater, 160.0, -1.0, 1.0, new int[] {1, 1, 5, 850, 2, 1, 1});
+            m_sim.AddThermRule("3", SimReading.RuleKind.ValueGreater, 170.0, -2.0, 2.0, new int[] {1, 8, 44, 43, 45, 9, 1});
         }
 
 
